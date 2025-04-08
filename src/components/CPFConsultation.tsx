@@ -148,7 +148,9 @@ const CPFConsultation = ({ clients, updateClients, showBatchImport, consultation
           // Always update the log with the actual API response
           log: apiResponseLog,
           // Ensure the consultation type is preserved
-          consultationType: existingClient.consultationType || consultationType
+          consultationType: existingClient.consultationType || consultationType,
+          // Initialize with the existing status to ensure type safety
+          status: existingClient.status
         };
         
         // Check if the API response contains "codigo": "SIM"
@@ -196,7 +198,9 @@ const CPFConsultation = ({ clients, updateClients, showBatchImport, consultation
           // Always store the actual API response
           log: apiResponseLog,
           // Set the consultation type based on the current tab
-          consultationType: consultationType
+          consultationType: consultationType,
+          // Initialize with a default status to ensure type safety
+          status: 'pending' as const
         };
         
         // Check if the API response contains "codigo": "SIM"
@@ -240,7 +244,7 @@ const CPFConsultation = ({ clients, updateClients, showBatchImport, consultation
       
       if (existingClient) {
         // Update existing client with error
-        const updatedClient = {
+        const updatedClient: Client = {
           ...existingClient,
           status: 'error',
           consultationDate: new Date().toISOString(),
@@ -326,10 +330,10 @@ const CPFConsultation = ({ clients, updateClients, showBatchImport, consultation
         const existingClient = clients[existingClientIndex];
         existingClientUpdates.push({
           ...existingClient,
-          status: 'pending',
+          status: 'pending' as const,
           retryCount: 0,
           // Update the consultation type to batch for reconsultation
-          consultationType: 'batch'
+          consultationType: 'batch' as const
         });
       }
     }
