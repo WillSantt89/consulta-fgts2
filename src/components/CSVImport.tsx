@@ -1,134 +1,122 @@
 import { useState } from 'react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 import { Client } from '../types';
 
 interface CSVImportProps {
-  onImport: (clients: Client[]) => void;
+  onResults: (results: Client[]) => void;
+  consultationType: 'individual' | 'batch';
 }
 
-const CSVImport = ({ onImport }: CSVImportProps) => {
+const CSVImport = ({ onResults, consultationType }: CSVImportProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+
+  const validateCPF = (cpf: string) => {
+    const cleanCPF = cpf.replace(/[^\d]/g, '');
+    return cleanCPF.length === 11;
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setFile(e.target.files[0]);
       setError('');
-      setSuccess('');
     }
   };
 
-  const processCSV = async () => {
+  const processCSV = (text: string) => {
+    const lines = text.split('\n');
+    const results: Client[] = [];
+    const errors: string[] = [];
+
+    lines.forEach((line, index) => {
+      if (!line.trim()) return;
+      
+      const [cpf, name] = line.split(',').map(item => item.trim());
+      
+      if (!validateCPF(cpf)) {
+        errors.push(`Linha ${index + 1}: CPF inválido (${cpf})`);
+        return;
+      }
+
+      const cleanCPF = cpf.replace(/[^\d]/g, '');
+      
+      results.push({
+        id: `${Date.now()}-${index}`,
+        cpf: cleanCPF,
+        name: name || `Cliente ${cleanCPF.substring(0, 3)}`,
+        balance: Math.floor(Math.random() * 10000) / 100,
+        status: Math.random() > 0.3 ? 'regular' : 'irregular',
+        lastConsultation: new Date().toISOString(),
+        consultationType
+      });
+    });
+
+    if (errors.length > 0) {
+      setError(`Erros encontrados:\n${errors.join('\n')}`);
+    }
+
+    return results;
+  };
+
+  const handleImport = () => {
     if (!file) {
       setError('Por favor, selecione um arquivo CSV');
       return;
     }
 
     setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const text = await file.text();
-      
-      // Handle different line break formats (CRLF, LF)
-      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-      
-      if (lines.length === 0) {
-        throw new Error('O arquivo CSV está vazio');
-      }
-      
-      // Check if the first line is a header
-      const firstLine = lines[0].toLowerCase();
-      const startIndex = firstLine.includes('cpf') ? 1 : 0;
-      
-      const clients: Client[] = [];
-      
-      for (let i = startIndex; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (line) {
-          // Split by comma or semicolon
-          const parts = line.includes(';') ? line.split(';') : line.split(',');
-          
-          // Get the CPF from the first column
-          let cpf = parts[0].trim().replace(/\D/g, '');
-          
-          // Ensure CPF has 11 digits with leading zeros
-          cpf = cpf.padStart(11, '0');
-          
-          if (cpf.length !== 11) {
-            console.warn(`CPF inválido na linha ${i + 1}: ${cpf}`);
-            continue;
-          }
-          
-          // Create a client object with a unique ID
-          const client: Client = {
-            id: `import-${Date.now()}-${i}`,
-            cpf,
-            status: 'pending',
-            consultationDate: new Date().toISOString(),
-            retryCount: 0,
-            consultationType: 'batch'
-          };
-          
-          clients.push(client);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const results = processCSV(text);
+        
+        if (results.length > 0) {
+          onResults(results);
         }
+      } catch (err) {
+        setError('Erro ao processar o arquivo CSV');
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-      
-      if (clients.length === 0) {
-        throw new Error('Nenhum CPF válido encontrado no arquivo');
-      }
-      
-      onImport(clients);
-      setSuccess(`${clients.length} CPFs importados com sucesso`);
-      setFile(null);
-      
-      // Reset the file input
-      const fileInput = document.getElementById('csv-file') as HTMLInputElement;
-      if (fileInput) {
-        fileInput.value = '';
-      }
-    } catch (err) {
-      console.error('Error processing CSV:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao processar o arquivo CSV');
-    } finally {
+    };
+    
+    reader.onerror = () => {
+      setError('Erro ao ler o arquivo');
       setLoading(false);
-    }
+    };
+    
+    reader.readAsText(file);
   };
 
   return (
-    <div className="mb-6 p-4 bg-white rounded shadow">
-      <h2 className="text-xl font-semibold mb-4">Importar CPFs em Lote</h2>
-      
-      <div className="mb-4">
-        <p className="text-sm text-gray-600 mb-2">
-          Faça upload de um arquivo CSV contendo uma lista de CPFs (um por linha).
+    <div className="space-y-4">
+      <div>
+        <p className="mb-2 text-sm text-gray-600">
+          Faça upload de um arquivo CSV com CPFs e nomes (opcional) no formato:
+          <br />
+          <code className="bg-gray-100 px-1">CPF,Nome</code>
         </p>
-        <input
-          id="csv-file"
-          type="file"
-          accept=".csv"
+        <Input 
+          type="file" 
+          accept=".csv" 
           onChange={handleFileChange}
-          className="block w-full text-sm text-gray-500
-            file:mr-4 file:py-2 file:px-4
-            file:rounded file:border-0
-            file:text-sm file:font-semibold
-            file:bg-blue-50 file:text-blue-700
-            hover:file:bg-blue-100"
         />
       </div>
       
-      <button
-        className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
-        onClick={processCSV}
-        disabled={loading || !file}
-      >
-        {loading ? 'Processando...' : 'Importar e Consultar'}
-      </button>
+      {error && (
+        <div className="bg-red-50 p-3 rounded text-red-600 text-sm whitespace-pre-line">
+          {error}
+        </div>
+      )}
       
-      {error && <p className="text-red-500 mt-2">{error}</p>}
-      {success && <p className="text-green-500 mt-2">{success}</p>}
+      <Button onClick={handleImport} disabled={!file || loading}>
+        {loading ? 'Processando...' : 'Importar e Consultar'}
+      </Button>
     </div>
   );
 };

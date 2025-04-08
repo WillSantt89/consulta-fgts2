@@ -17,28 +17,31 @@ function App() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Sistema de Consulta de CPF</h1>
-      
-      <div className="flex border-b mb-4">
+      <h1 className="text-2xl font-bold mb-6 text-center">Sistema de Consulta de CPF</h1>
+
+      <nav className="flex justify-center border-b mb-4">
         <button
-          className={`py-2 px-4 ${activeTab === 'dashboard' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'}`}
+          className={`py-2 px-4 rounded-t-lg ${activeTab === 'dashboard' ? 'bg-blue-100 border-b-2 border-blue-500 text-blue-500' : 'text-gray-500 hover:text-blue-500'
+            }`}
           onClick={() => setActiveTab('dashboard')}
         >
           Dashboard
         </button>
         <button
-          className={`py-2 px-4 ${activeTab === 'consultation' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'}`}
+          className={`py-2 px-4 rounded-t-lg ${activeTab === 'consultation' ? 'bg-blue-100 border-b-2 border-blue-500 text-blue-500' : 'text-gray-500 hover:text-blue-500'
+            }`}
           onClick={() => setActiveTab('consultation')}
         >
           Consulta saldo
         </button>
         <button
-          className={`py-2 px-4 ${activeTab === 'campaign' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'}`}
+          className={`py-2 px-4 rounded-t-lg ${activeTab === 'campaign' ? 'bg-blue-100 border-b-2 border-blue-500 text-blue-500' : 'text-gray-500 hover:text-blue-500'
+            }`}
           onClick={() => setActiveTab('campaign')}
         >
           Campanha em Lote
         </button>
-      </div>
+      </nav>
 
       {activeTab === 'dashboard' && <Dashboard clients={clients} />}
       {activeTab === 'consultation' && <CPFConsultation clients={clients} updateClients={updateClients} showBatchImport={false} consultationType="individual" />}
